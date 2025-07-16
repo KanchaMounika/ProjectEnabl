@@ -57,7 +57,7 @@ export default function Home() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': process.env.NEXT_PUBLIC_API_KEY || 'enabl123', // Match your backend key here or use env variable
+          'x-api-key': process.env.NEXT_PUBLIC_API_KEY || 'enabl123',
         },
         body: JSON.stringify(newPost),
       });
@@ -78,54 +78,72 @@ export default function Home() {
   };
 
   return (
-    <div style={{ padding: '20px' }}>
-      <h1>Posts</h1>
-      <button onClick={toggleModal}>Create New Post</button>
+    <div className="p-6 max-w-4xl mx-auto">
+      <h1 className="text-3xl font-bold mb-4 text-center">Posts</h1>
+      <div className="flex justify-end mb-4">
+        <button
+          onClick={toggleModal}
+          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+        >
+          Create New Post
+        </button>
+      </div>
 
       {showModal && (
-        <div style={{ margin: '20px 0', border: '1px solid #ccc', padding: '10px' }}>
-          <h2>Create New Post</h2>
+        <div className="bg-gray-100 p-6 rounded shadow mb-6">
+          <h2 className="text-xl font-semibold mb-4">Create New Post</h2>
           <input
             type="text"
             placeholder="Title"
             value={newTitle}
             onChange={(e) => setNewTitle(e.target.value)}
-            style={{ width: '100%', marginBottom: '10px' }}
+            className="w-full p-2 border border-gray-300 rounded mb-3"
           />
           <textarea
             placeholder="Content"
             value={newContent}
             onChange={(e) => setNewContent(e.target.value)}
             rows={5}
-            style={{ width: '100%', marginBottom: '10px' }}
+            className="w-full p-2 border border-gray-300 rounded mb-3"
           />
-          <button onClick={handleNewPost} style={{ marginRight: '10px' }}>
-            Submit
-          </button>
-          <button onClick={toggleModal}>Cancel</button>
+          <div className="flex gap-4">
+            <button
+              onClick={handleNewPost}
+              className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+            >
+              Submit
+            </button>
+            <button
+              onClick={toggleModal}
+              className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       )}
 
-      {loading && <p>Loading posts...</p>}
-      {error && <p style={{ color: 'red' }}>{error}</p>}
+      {loading && <p className="text-blue-600">Loading posts...</p>}
+      {error && <p className="text-red-600">{error}</p>}
 
-      <table border="1" cellPadding="10" cellSpacing="0" style={{ width: '100%', marginTop: '20px' }}>
-        <thead>
+      <table className="min-w-full border border-gray-300 shadow">
+        <thead className="bg-gray-200">
           <tr>
-            <th>Title</th>
-            <th>Details</th>
+            <th className="text-left p-2 border-b">Title</th>
+            <th className="text-left p-2 border-b">Details</th>
           </tr>
         </thead>
         <tbody>
           {currentPosts.map((post) => (
-            <tr key={post.id}>
-              <td>{post.title}</td>
-              <td>
+            <tr key={post.id} className="hover:bg-gray-100">
+              <td className="p-2 border-b">{post.title}</td>
+              <td className="p-2 border-b">
                 <Link
                   href={{
                     pathname: `/posts/${post.id}`,
                     query: { post: JSON.stringify(post) },
                   }}
+                  className="text-blue-600 hover:underline"
                 >
                   View Details
                 </Link>
@@ -135,12 +153,17 @@ export default function Home() {
         </tbody>
       </table>
 
-      <div style={{ marginTop: '20px' }}>
+      {/* Pagination */}
+      <div className="mt-6 flex flex-wrap gap-2">
         {Array.from({ length: Math.ceil(posts.length / postsPerPage) }, (_, i) => (
           <button
             key={i}
             onClick={() => paginate(i + 1)}
-            style={{ marginRight: '5px', fontWeight: currentPage === i + 1 ? 'bold' : 'normal' }}
+            className={`px-3 py-1 rounded ${
+              currentPage === i + 1
+                ? 'bg-blue-700 text-white font-bold'
+                : 'bg-gray-200 text-gray-700'
+            }`}
           >
             {i + 1}
           </button>
