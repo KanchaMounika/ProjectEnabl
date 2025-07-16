@@ -16,5 +16,8 @@ Features:
   we need to have a SQL DB setup.
   <img width="756" height="477" alt="image" src="https://github.com/user-attachments/assets/99788f02-c0a1-4e7d-8775-ddd57acfc3c7" />
 
+  For Firestore, Cloud DB we need to have a Firestore DB setup:
+  <img width="1822" height="994" alt="image" src="https://github.com/user-attachments/assets/24bcd59c-9cef-4ee9-a9cb-45b389b941a4" />
+
 
   
