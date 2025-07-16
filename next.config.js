@@ -1,9 +1,13 @@
-module.exports = {
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   webpack: (config) => {
-    config.experiments = { asyncWebAssembly: true };
+    config.experiments = {
+      ...(config.experiments || {}),
+      asyncWebAssembly: true,
+      layers: true, // ✅ Needed to avoid the Vercel build error
+    };
     return config;
   },
-   future: {
-    turbo: false,  // Opt out of Turbopack
-  },
 };
+
+module.exports = nextConfig;
