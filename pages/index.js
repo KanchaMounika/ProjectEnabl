@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { collection, getDocs, addDoc, query, orderBy } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 
 export default function Home() {
   const [posts, setPosts] = useState([]);
@@ -11,21 +13,46 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Fetch posts from our API
   useEffect(() => {
     const fetchPosts = async () => {
       setLoading(true);
       setError(null);
+
       try {
-        const response = await fetch('/api/posts');
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data = await response.json();
-        setPosts(data);
+        // Fetch Firestore posts
+        const postsRef = collection(db, 'posts');
+        const q = query(postsRef, orderBy('createdAt', 'desc'));
+        const snapshot = await getDocs(q);
+
+        const firestorePosts = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+          source: 'firestore', // tag for source
+        }));
+
+        // Fetch JSONPlaceholder posts
+        const res = await fetch('https://jsonplaceholder.typicode.com/posts');
+        const jsonPlaceholderPostsRaw = await res.json();
+
+        // Map JSONPlaceholder posts to match your structure and add source tag
+        // Use negative IDs to avoid collision with Firestore IDs
+        const jsonPlaceholderPosts = jsonPlaceholderPostsRaw.map(post => ({
+          id: `json-${post.id}`,
+          title: post.title,
+          body: post.body,
+          createdAt: null, // no createdAt from JSONPlaceholder
+          source: 'jsonplaceholder',
+        }));
+
+        // Combine both post lists
+        // You can sort here by createdAt or any custom logic
+        // Here, Firestore posts come first since they have createdAt dates
+        const combinedPosts = [...firestorePosts, ...jsonPlaceholderPosts];
+
+        setPosts(combinedPosts);
       } catch (err) {
         setError('Failed to fetch posts');
-        console.error('Failed to fetch posts:', err);
+        console.error(err);
       } finally {
         setLoading(false);
       }
@@ -50,24 +77,16 @@ export default function Home() {
     const newPost = {
       title: newTitle.trim(),
       body: newContent.trim(),
+      createdAt: new Date(),
     };
 
     try {
-      const response = await fetch('/api/posts', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': process.env.NEXT_PUBLIC_API_KEY || 'enabl123',
-        },
-        body: JSON.stringify(newPost),
-      });
+      const postsRef = collection(db, 'posts');
+      const docRef = await addDoc(postsRef, newPost);
 
-      if (!response.ok) {
-        throw new Error(`Failed to create post: ${response.statusText}`);
-      }
+      // Add the new post with its id to the posts state (at the front)
+      setPosts([{ id: docRef.id, ...newPost, source: 'firestore' }, ...posts]);
 
-      const createdPost = await response.json();
-      setPosts([createdPost, ...posts]);
       setNewTitle('');
       setNewContent('');
       setShowModal(false);
@@ -130,6 +149,7 @@ export default function Home() {
         <thead className="bg-gray-200">
           <tr>
             <th className="text-left p-2 border-b">Title</th>
+            <th className="text-left p-2 border-b">Source</th>
             <th className="text-left p-2 border-b">Details</th>
           </tr>
         </thead>
@@ -137,6 +157,7 @@ export default function Home() {
           {currentPosts.map((post) => (
             <tr key={post.id} className="hover:bg-gray-100">
               <td className="p-2 border-b">{post.title}</td>
+              <td className="p-2 border-b capitalize">{post.source}</td>
               <td className="p-2 border-b">
                 <Link
                   href={{

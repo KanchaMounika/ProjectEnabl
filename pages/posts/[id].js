@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { db } from '../../lib/firebase';
 
 export default function PostDetails() {
   const router = useRouter();
-  const { id } = router.query;
+  const { id, post: postQuery } = router.query;
 
   const [post, setPost] = useState(null);
   const [wordCount, setWordCount] = useState(0);
@@ -14,27 +16,53 @@ export default function PostDetails() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Fetch post from Firestore or parse from query param
   useEffect(() => {
-    if (!id) return;
+    if (!id) return; // Wait until id is available
 
-    setLoading(true);
-    fetch(`/api/posts/${id}`)
-      .then((res) => {
-        if (!res.ok) throw new Error('Failed to fetch post');
-        return res.json();
-      })
-      .then((data) => {
-        setPost(data);
-        setEditTitle(data.title);
-        setEditBody(data.body);
-        setLoading(false);
-      })
-      .catch((err) => {
-        setError(err.message);
-        setLoading(false);
-      });
-  }, [id]);
+    const fetchPost = async () => {
+      setLoading(true);
+      setError(null);
 
+      // Try to parse post from query param to avoid extra fetch
+      if (postQuery) {
+        try {
+          const postFromQuery = JSON.parse(postQuery);
+          setPost(postFromQuery);
+          setEditTitle(postFromQuery.title);
+          setEditBody(postFromQuery.body);
+          setLoading(false);
+          return; // We got post data, skip Firestore fetch
+        } catch (err) {
+          console.error('Failed to parse post from query:', err);
+          // Continue to fetch from Firestore if parse fails
+        }
+      }
+
+      try {
+        const docRef = doc(db, 'posts', id);
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          setPost({ id: docSnap.id, ...data });
+          setEditTitle(data.title);
+          setEditBody(data.body);
+        } else {
+          setError('Post not found');
+        }
+      } catch (err) {
+        setError('Failed to fetch post');
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPost();
+  }, [id, postQuery]);
+
+  // Word count logic
   useEffect(() => {
     if (!post) return;
 
@@ -55,30 +83,34 @@ export default function PostDetails() {
     loadWasm();
   }, [post, editBody]);
 
+  // Save updated post to Firestore
   const savePost = async () => {
     try {
-      const res = await fetch(`/api/posts/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ title: editTitle, body: editBody }),
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.message || 'Failed to update post');
-      }
-      const updatedPost = await res.json();
-      setPost(updatedPost);
+      if (!id) throw new Error('Invalid post id');
+
+      const docRef = doc(db, 'posts', id);
+      await updateDoc(docRef, { title: editTitle, body: editBody });
+
+      setPost((prev) => ({
+        ...prev,
+        title: editTitle,
+        body: editBody,
+      }));
+
       setIsEditing(false);
       setError(null);
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Failed to update post');
+      console.error(err);
     }
   };
 
+  if (!id) {
+    return <div className="p-6 text-center text-gray-500">Loading post ID...</div>;
+  }
+
   if (loading) {
-    return <div className="p-6 text-center text-gray-500">Loading...</div>;
+    return <div className="p-6 text-center text-gray-500">Loading post...</div>;
   }
 
   if (error) {
