@@ -12,4 +12,9 @@ Features:
 - Pagination for posts
 - Hosted on Vercel
 
+  For Local DB:
+  we need to have a SQL DB setup.
+  <img width="756" height="477" alt="image" src="https://github.com/user-attachments/assets/99788f02-c0a1-4e7d-8775-ddd57acfc3c7" />
+
+
   
